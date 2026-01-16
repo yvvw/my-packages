@@ -1,0 +1,30 @@
+--- include/target.mk
++++ include/target.mk
+@@ -96,11 +96,6 @@
+   endif
+ endif
+
+-# include ujail on systems with enough storage
+-ifeq ($(filter small_flash,$(FEATURES)),)
+-  DEFAULT_PACKAGES+=procd-ujail
+-endif
+-
+ # Add device specific packages (here below to allow device type set from subtarget)
+ DEFAULT_PACKAGES += $(DEFAULT_PACKAGES.$(DEVICE_TYPE))
+
+@@ -285,6 +280,15 @@
+     CPU_CFLAGS := -O2 -pipe
+     CPU_CFLAGS_generic:=-march=loongarch64
+   endif
++  ifeq ($(BOARD),rockchip)
++    CPU_CFLAGS = -O3 -pipe
++    CPU_CFLAGS_cortex-a53 = -mcpu=cortex-a53
++    CPU_CFLAGS_cortex-a55 = -march=armv8-a+crypto+crc -mcpu=cortex-a55+crypto+crc -mtune=cortex-a55
++    CPU_CFLAGS_cortex-a73 = -march=armv8-a+crypto+crc -mcpu=cortex-a73.cortex-a53+crypto+crc -mtune=cortex-a73.cortex-a53
++    ifneq ($(SOC_CFLAGS),)
++      CPU_CFLAGS_generic = $(SOC_CFLAGS)
++    endif
++  endif
+   ifneq ($(CPU_TYPE),)
+     ifndef CPU_CFLAGS_$(CPU_TYPE)
+       $(warning CPU_TYPE "$(CPU_TYPE)" doesn't correspond to a known type)

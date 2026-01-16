@@ -1,0 +1,57 @@
+#!/bin/sh
+
+[ -f "/etc/.upgrade" ] && exit 0
+
+uci -q batch <<EOF
+    set system.@system[0].hostname="<M_NAME>"
+    commit system
+EOF
+
+# schedule memory release
+uci -q batch <<EOF
+    set 77_syscontrol.schedule.enabled="1"
+    commit 77_syscontrol
+EOF
+
+# network optimize
+uci -q batch <<EOF
+    set network.globals.packet_steering="1"
+    set network.@device[0].promisc="1"
+    commit network
+EOF
+
+# ipv6
+uci -q batch <<EOF
+    set network.lan.ip6assign="64"
+    set network.lan.ip6ifaceid="eui64"
+    set network.lan.delegate="0"
+    commit network
+
+    set dhcp.lan.ra="server"
+	set dhcp.lan.dns_service="0"
+	add_list dhcp.lan.ra_flags="none"
+    commit dhcp
+EOF
+
+# adjust dns
+uci -q batch <<EOF
+    set dhcp.@dnsmasq[0].rebind_protection="0"
+    set dhcp.@dnsmasq[0].cachesize="10000"
+    commit dhcp
+EOF
+
+# enable upnp
+uci -q batch <<EOF || true
+    set upnpd.config.enabled="1"
+    set upnpd.config.use_stun="1"
+    set upnpd.config.uuid="$(cat /proc/sys/kernel/random/uuid)"
+    commit upnpd
+EOF
+
+# enable bbr
+uci -q batch <<EOF || true
+    set turboacc.config.bbr_cca="1"
+    commit turboacc
+EOF
+
+exit 0

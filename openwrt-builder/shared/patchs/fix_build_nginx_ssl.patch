@@ -1,0 +1,34 @@
+--- feeds/luci/collections/luci-nginx/Makefile
++++ feeds/luci/collections/luci-nginx/Makefile
+@@ -15,11 +15,10 @@
+ 	+IPV6:luci-proto-ipv6 \
+ 	+luci-app-firewall \
+ 	+luci-app-package-manager \
+-	+luci-app-attendedsysupgrade \
+ 	+luci-mod-admin-full \
+ 	+luci-proto-ppp \
+ 	+luci-theme-bootstrap \
+-	+nginx \
++	+nginx-ssl \
+ 	+nginx-mod-luci \
+ 	+rpcd-mod-rrdns
+
+--- feeds/packages/net/nginx/Makefile
++++ feeds/packages/net/nginx/Makefile
+@@ -199,7 +199,7 @@
+   SUBMENU:=Web Servers/Proxies
+   TITLE:=Support file for Nginx
+   URL:=http://nginx.org/
+-  DEPENDS:=+uwsgi +uwsgi-luci-support +nginx +nginx-mod-ubus
++  DEPENDS:=+uwsgi +uwsgi-luci-support +nginx-ssl +nginx-mod-ubus
+ endef
+
+ define Package/nginx-mod-luci/description
+@@ -402,7 +402,7 @@
+ define BuildModule
+   define Package/nginx-mod-$(1)
+     $(call Package/nginx/default)
+-    DEPENDS:=+nginx $(2)
++    DEPENDS:=+nginx-ssl $(2)
+     TITLE:=Nginx $(1) module
+   endef

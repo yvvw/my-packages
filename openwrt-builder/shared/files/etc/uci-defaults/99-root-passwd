@@ -1,0 +1,9 @@
+#!/bin/sh
+
+[ -f "/etc/.upgrade" ] && exit 0
+
+if [ ! -z "<M_PASSWORD>" ]; then
+	echo -e "<M_PASSWORD>\n<M_PASSWORD>" | passwd
+fi
+
+exit 0

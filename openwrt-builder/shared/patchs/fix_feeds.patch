@@ -1,0 +1,42 @@
+--- include/kernel-defaults.mk
++++ include/kernel-defaults.mk
+@@ -126,7 +126,7 @@
+ 		cp $(LINUX_DIR)/.config.set $(LINUX_DIR)/.config.prev; \
+ 	}
+ 	$(_SINGLE) [ -d $(LINUX_DIR)/user_headers ] || $(KERNEL_MAKE) $(if $(findstring uml,$(BOARD)),ARCH=$(ARCH)) INSTALL_HDR_PATH=$(LINUX_DIR)/user_headers headers_install
+-	grep '=[ym]' $(LINUX_DIR)/.config.set | LC_ALL=C sort | $(MKHASH) md5 > $(LINUX_DIR)/.vermagic
++	echo '1' > $(LINUX_DIR)/.vermagic
+ endef
+
+ define Kernel/Configure/Initramfs
+
+--- include/feeds.mk
++++ include/feeds.mk
+@@ -34,7 +34,7 @@
+ # 1: destination file
+ define FeedSourcesAppendOPKG
+ ( \
+-  echo 'src/gz %d_core %U/targets/%S/packages'; \
++  echo 'src/gz %d_core %U/targets/%S/$(LINUX_VERSION)'; \
+   $(strip $(if $(CONFIG_PER_FEED_REPO), \
+ 	echo 'src/gz %d_base %U/packages/%A/base'; \
+ 	$(if $(CONFIG_BUILDBOT), \
+
+--- package/emortal/default-settings/files/99-default-settings-chinese
++++ package/emortal/default-settings/files/99-default-settings-chinese
+@@ -18,15 +18,4 @@
+ 	EOF
+ fi
+
+-opkg_mirror="$(uci -q get system.@imm_init[0].opkg_mirror)"
+-if [ -z "$opkg_mirror" ]; then
+-	opkg_mirror="https://mirrors.vsean.net/openwrt"
+-	uci -q batch <<-EOF
+-		set system.@imm_init[0].opkg_mirror="$opkg_mirror"
+-		commit system
+-	EOF
+-fi
+-
+-sed -i.bak "s,https://downloads.immortalwrt.org,$opkg_mirror,g" "/etc/opkg/distfeeds.conf"
+-
+ exit 0

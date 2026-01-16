@@ -1,0 +1,9 @@
+--- package/emortal/default-settings/Makefile
++++ package/emortal/default-settings/Makefile
+@@ -16,7 +16,6 @@
+   SECTION:=luci
+   CATEGORY:=LuCI
+   TITLE:=LuCI support for Default Settings
+-  DEPENDS:=+luci
+   PKGARCH:=all
+ endef

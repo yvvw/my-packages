@@ -1,0 +1,22 @@
+#!/bin/sh
+
+[ -f "/etc/.upgrade" ] && exit 0
+
+uci -q batch <<EOF
+	del network.lan.ipaddr
+	add_list network.lan.ipaddr='<M_LAN_PREFIX>.1/24'
+    commit network
+EOF
+
+if [ "<M_WAN_PROTO>" == "pppoe" ]; then
+    uci -q batch <<EOF
+    set network.wan.proto="pppoe"
+    set network.wan.username="<M_WAN_PPPOE_USER>"
+    set network.wan.password="<M_WAN_PPPOE_PASS>"
+    commit network
+EOF
+fi
+
+/etc/init.d/wizard reconfig
+
+exit 0

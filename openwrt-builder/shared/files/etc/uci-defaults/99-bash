@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -x "/bin/bash" ] && grep -q "/bin/ash" /etc/passwd; then
+	sed -i "s,/bin/ash,/bin/bash," /etc/passwd
+fi
+
+exit 0
