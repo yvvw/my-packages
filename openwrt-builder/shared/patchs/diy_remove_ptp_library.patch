@@ -1,0 +1,21 @@
+--- package/kernel/linux/modules/other.mk
++++ package/kernel/linux/modules/other.mk
+@@ -852,9 +852,6 @@
+  synchronize distributed clocks over Ethernet networks.
+ endef
+ 
+-$(eval $(call KernelPackage,ptp))
+-
+-
+ define KernelPackage/ptp-qoriq
+   SUBMENU:=$(OTHER_MENU)
+   TITLE:=Freescale QorIQ PTP support
+@@ -870,8 +867,6 @@
+  QorIQ Ethernet drivers
+ endef
+ 
+-$(eval $(call KernelPackage,ptp-qoriq))
+-
+ define KernelPackage/random-core
+   SUBMENU:=$(OTHER_MENU)
+   TITLE:=Hardware Random Number Generator Core support

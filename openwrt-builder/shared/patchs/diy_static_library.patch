@@ -1,0 +1,11 @@
+--- package/firmware/linux-firmware/Makefile
++++ package/firmware/linux-firmware/Makefile
+@@ -17,6 +17,8 @@
+ 
+ PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+ 
++PKG_FLAGS:=nonshared
++
+ SCAN_DEPS = *.mk
+ 
+ include $(INCLUDE_DIR)/package.mk
