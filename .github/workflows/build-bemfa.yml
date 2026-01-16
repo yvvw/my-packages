@@ -1,0 +1,44 @@
+name: Build Bemfa
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "bemfa/**"
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@main
+        with:
+          sparse-checkout: bemfa/
+
+      - uses: crazy-max/ghaction-upx@master
+        with:
+          install-only: true
+
+      - name: Setup Go
+        uses: actions/setup-go@main
+        with:
+          cache-dependency-path: bemfa/go.sum
+
+      - uses: goreleaser/goreleaser-action@master
+        with:
+          workdir: bemfa
+          args: release --snapshot --clean
+
+      - uses: dev-drprasad/delete-older-releases@v0.3.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          keep_latest: 0
+          delete_tags: true
+          delete_tag_pattern: bemfa
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: bemfa
+          tag_name: bemfa
+          files: bemfa/dist/*.{tar.gz,zip}

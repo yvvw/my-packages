@@ -1,0 +1,33 @@
+version: 2
+
+builds:
+  - id: bemfa
+    binary: bemfa
+    flags:
+      - -v
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -buildid=
+    env:
+      - CGO_ENABLED=0
+      - GOTOOLCHAIN=local
+    targets:
+      - linux_arm64
+      - windows_amd64_v1
+
+archives:
+  - id: bemfa
+    ids:
+      - bemfa
+    formats: tar.gz
+    format_overrides:
+      - goos: windows
+        formats: zip
+    name_template: >-
+      {{ .Binary }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
+
+upx:
+  - enabled: true
+    compress: best
