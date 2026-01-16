@@ -1,16 +1,13 @@
 #!/bin/bash
-
 set -euo pipefail
 
-# patch diy
-if [ -d "${BUILDER_DIR}/shared/patchs" ]; then
+# apply diy patch
+[ -d "${BUILDER_DIR}/shared/patchs" ] &&
 	batch_patch "${BUILDER_DIR}/shared/patchs"/diy_*.patch
-fi
-if [ -d "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs" ]; then
+[ -d "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs" ] &&
 	batch_patch "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs"/diy_*.patch
-fi
 
-# patch tcp bbr
+# apply tcp bbr patch
 if grep -qE "bbr=y|turboacc=y" .config && [ ! -d "package/turboacc" ]; then
 	curl -sSL "https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh" | bash
 fi

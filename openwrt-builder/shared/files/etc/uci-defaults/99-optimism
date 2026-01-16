@@ -35,6 +35,7 @@ EOF
 
 # adjust dns
 uci -q batch <<EOF
+    set dhcp.@dnsmasq[0].localservice="0"
     set dhcp.@dnsmasq[0].rebind_protection="0"
     set dhcp.@dnsmasq[0].cachesize="10000"
     commit dhcp
