@@ -1,0 +1,78 @@
+name: Build sing-box
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        default: "1.13.0"
+      ref:
+        type: string
+        default: "dev-next"
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          repository: "SagerNet/sing-box"
+          ref: "${{ inputs.ref }}"
+
+      - uses: actions/setup-go@main
+        with:
+          go-version: ^1.25.6
+
+      - uses: actions/cache@main
+        id: cache-ghr
+        with:
+          key: ghr
+          path: ~/go/bin/ghr
+
+      - name: Install ghr
+        if: steps.cache-ghr.outputs.cache-hit != 'true'
+        run: |
+          cd $HOME
+          git clone --depth=1 https://github.com/nekohasekai/ghr ghr
+          cd ghr
+          go install -v .
+
+      - uses: actions/checkout@main
+        with:
+          path: build_repo
+          sparse-checkout: sing-box
+
+      - run: |
+          git tag ${{ inputs.version }} -f
+
+          cp build_repo/sing-box/.goreleaser.yaml . \
+            && cp -a build_repo/sing-box/patch/. . \
+            && rm -rf build_repo
+          go mod tidy
+
+      - uses: goreleaser/goreleaser-action@master
+        with:
+          args: release --snapshot --clean
+
+      - run: mkdir -p release && mv dist/*.{tar.gz,zip} release
+
+      - uses: dev-drprasad/delete-older-releases@v0.3.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          keep_latest: 0
+          delete_tags: true
+          delete_tag_pattern: sing-box
+
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          export PATH="$PATH:$HOME/go/bin"
+          IFS="/" read -r user repo <<< "$GITHUB_REPOSITORY"
+          VERSION=""
+          if [ "${{ inputs.version }}" == "${{ inputs.ref }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${{ inputs.version }}-${{ inputs.ref }}"
+          fi
+          ghr -u $user -r $repo --replace "sing-box-$VERSION" release

@@ -1,28 +1,31 @@
 version: 2
 
-project_name: bemfa
+project_name: sing-box
 
 builds:
-  - id: bemfa
-    main: .
+  - main: ./cmd/sing-box
     flags:
       - -trimpath
     ldflags:
       - -s
       - -w
       - -buildid=
+      - -X github.com/sagernet/sing-box/constant.Version={{ .Version }}
+      - -X internal/godebug.defaultGODEBUG=multipathtcp=0
+    tags:
+      - with_gvisor
+      - with_clash_api
+      - with_tools_generate
     env:
       - CGO_ENABLED=0
     targets:
       - linux_arm64
+      - linux_amd64
       - windows_amd64
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
-  - id: bemfa
-    ids:
-      - bemfa
-    formats: 
+  - formats:
       - tar.gz
     format_overrides:
       - goos: windows
@@ -32,7 +35,3 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end -}}
       {{- if and .Amd64 (ne .Amd64 "v1") }}{{ .Amd64 }}{{ end -}}
     wrap_in_directory: true
-
-upx:
-  - enabled: true
-    compress: best

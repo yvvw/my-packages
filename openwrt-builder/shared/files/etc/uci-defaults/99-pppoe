@@ -4,7 +4,7 @@
 
 uci -q batch <<EOF
 	del network.lan.ipaddr
-	add_list network.lan.ipaddr='<M_LAN_PREFIX>.1/24'
+	add_list network.lan.ipaddr="<M_LAN_PREFIX>.1/24"
     commit network
 EOF
 

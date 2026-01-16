@@ -1,0 +1,37 @@
+--- target/Config.in
++++ target/Config.in
+@@ -16,14 +16,10 @@
+ config HAS_DT_OVERLAY_SUPPORT
+ 	bool
+
+-config AUDIO_SUPPORT
+-	bool
+-
+ config GPIO_SUPPORT
+ 	bool
+
+ config PCI_SUPPORT
+-	select AUDIO_SUPPORT
+ 	bool
+
+ config PCIE_SUPPORT
+@@ -39,7 +35,6 @@
+ 	bool
+
+ config USB_SUPPORT
+-	select AUDIO_SUPPORT
+ 	bool
+
+ config USB_GADGET_SUPPORT
+
+--- target/linux/rockchip/Makefile
++++ target/linux/rockchip/Makefile
+@@ -4,7 +4,7 @@
+
+ BOARD:=rockchip
+ BOARDNAME:=Rockchip
+-FEATURES:=ext4 audio usb usbgadget display gpio fpu pci pcie rootfs-part boot-part squashfs
++FEATURES:=ext4 usb usbgadget display gpio fpu pci pcie rootfs-part boot-part squashfs
+ SUBTARGETS:=armv8
+
+ KERNEL_PATCHVER:=6.12

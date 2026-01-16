@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+download_url=$(
+	wget -q -O- "https://api.github.com/repos/yvvw/my-packages/releases" |
+		jq -r ".[].assets[].browser_download_url" |
+		grep "sing-box" |
+		grep -m 1 "linux-arm64"
+)
+
+latest_version=$(echo $download_url | sed -E "s/.*sing-box-(.*)-linux.*/\1/")
+installed_version=$(sing-box version | grep "sing-box version" | sed -E "s/sing-box version (.*)/\1/")
+if [ "$installed_version" == "$latest_version" ]; then
+	echo "Already install $installed_version skip."
+	return 0
+fi
+
+wget -O "sing-box.tar.gz" $download_url && tar -xzf "sing-box.tar.gz" && rm "sing-box.tar.gz"
+mv sing-box-*/sing-box /usr/bin && chmod +x /usr/bin/sing-box && rm -rf sing-box-*
