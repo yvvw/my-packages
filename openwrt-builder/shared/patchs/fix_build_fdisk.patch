@@ -1,0 +1,10 @@
+--- target/linux/rockchip/Makefile
++++ target/linux/rockchip/Makefile
+@@ -16,7 +16,7 @@
+ include $(INCLUDE_DIR)/target.mk
+
+ DEFAULT_PACKAGES += uboot-envtools partx-utils mkf2fs kmod-gpio-button-hotplug \
+-		    fdisk automount autocore luci-app-cpufreq
++		    util-linux automount autocore luci-app-cpufreq
+
+ KERNELNAME:=Image dtbs

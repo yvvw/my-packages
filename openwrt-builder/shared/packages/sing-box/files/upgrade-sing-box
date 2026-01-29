@@ -1,0 +1,34 @@
+#!/bin/sh
+set -e
+
+arch=$(uname -m)
+
+case "$arch" in
+x86_64)
+	my_arch="amd64"
+	;;
+aarch64)
+	my_arch="arm64"
+	;;
+*)
+	echo "Unsupported $arch"
+	exit 1
+	;;
+esac
+
+download_url=$(
+	wget -q -O- "https://api.github.com/repos/yvvw/my-packages/releases" |
+		jq -r ".[].assets[].browser_download_url" |
+		grep "sing-box" |
+		grep -m 1 "linux-${my_arch}"
+)
+
+local_version=$(command -v sing-box >/dev/null 2>&1 && sing-box version | grep "sing-box version" | sed -E "s/sing-box version (.*)/\1/" || echo '0')
+latest_version=$(echo $download_url | sed -E "s/.*sing-box-(.*)-linux.*/\1/")
+if [ "$local_version" == "$latest_version" ]; then
+	echo "Already install $local_version skip."
+	return 0
+fi
+
+wget -q --show-progress -O "sing-box.tar.gz" $download_url && tar -xzf "sing-box.tar.gz" && rm "sing-box.tar.gz"
+mv sing-box-*/sing-box /usr/bin && chmod +x /usr/bin/sing-box && rm -rf sing-box-*

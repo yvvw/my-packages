@@ -1,0 +1,10 @@
+#!/bin/sh
+
+UPGRADE_MARK="/etc/.upgrade"
+
+if [ ! -f "${UPGRADE_MARK}" ]; then
+	touch "${UPGRADE_MARK}"
+	echo "# This is mark for system first install or upgrade, DO NOT DELETE.\n${UPGRADE_MARK}" >/etc/sysupgrade.conf
+fi
+
+exit 0
