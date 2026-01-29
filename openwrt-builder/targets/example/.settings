@@ -1,0 +1,5 @@
+M_NAME="OpenWrt"
+M_PASSWORD="password"
+M_LAN_PREFIX="192.168.1"
+
+M_WAN_PROTO="dhcp"

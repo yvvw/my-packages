@@ -1,0 +1,10 @@
+#!/bin/sh
+
+[ -f "/etc/.upgrade" ] && exit 0
+
+uci -q batch <<EOF || true
+    del system.led_lan
+    commit system
+EOF
+
+exit 0
