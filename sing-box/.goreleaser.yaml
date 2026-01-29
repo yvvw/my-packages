@@ -1,0 +1,36 @@
+version: 2
+
+project_name: sing-box
+
+builds:
+  - main: ./cmd/sing-box
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -buildid=
+      - -X github.com/sagernet/sing-box/constant.Version={{ .Version }}
+      - -X internal/godebug.defaultGODEBUG=multipathtcp=0
+    tags:
+      - with_clash_api
+      - with_tools_generate
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - linux_arm64
+      - linux_amd64
+      - windows_amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats: zip
+    name_template: >-
+      {{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+      {{- if and .Amd64 (ne .Amd64 "v1") }}{{ .Amd64 }}{{ end -}}
+    wrap_in_directory: true
