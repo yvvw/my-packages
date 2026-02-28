@@ -1,10 +1,6 @@
 --- feeds/luci/collections/luci-nginx/Makefile
 +++ feeds/luci/collections/luci-nginx/Makefile
-@@ -15,11 +15,10 @@
- 	+IPV6:luci-proto-ipv6 \
- 	+luci-app-firewall \
- 	+luci-app-package-manager \
--	+luci-app-attendedsysupgrade \
+@@ -18,7 +18,7 @@
  	+luci-mod-admin-full \
  	+luci-proto-ppp \
  	+luci-theme-bootstrap \
