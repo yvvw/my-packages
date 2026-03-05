@@ -1,0 +1,59 @@
+[[subscriptions]]
+name = "机场1"
+default = "机场1 香港"
+content = "base64"
+
+[[subscriptions]]
+name = "机场2"
+default = "机场2 日本"
+content = "https://机场二.com/订阅链接"
+
+[sing-box]
+default = "out-机场1"
+output = "config_example.json"
+template = "config_example.template"
+clash_port = 9090
+
+# rule_set
+[[sing-box.rule_set]]
+tag = "geosite-baidu"
+url = "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs"
+download_detour = "out-direct"
+
+[[sing-box.rule_set]]
+tag = "geosite-google"
+url = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs"
+download_detour = "out-proxy"
+
+# dns_rules
+[[sing-box.dns_rules]]
+server = "dns-direct"
+domain_suffix = ["baidu.com"]
+
+[[sing-box.dns_rules]]
+server = "dns-proxy"
+domain_suffix = ["google.com"]
+
+# route_rules
+[[sing-box.route_rules]]
+outbound = "out-direct"
+domain_suffix = ["baidu.com"]
+
+[[sing-box.route_rules]]
+server = "out-proxy"
+domain_suffix = ["google.com"]
+
+# block
+[sing-box.block_rule]
+rule_set = ["anti-ad"]
+
+# direct
+[sing-box.direct_rule]
+domain = ["apple.com"]
+domain_suffix = ["icloud.com"]
+ip_cidr = ["127.0.0.1"]
+
+# proxy
+[sing-box.proxy_rule]
+domain_suffix = ["google.com"]
+rule_set = ["geosite-google"]

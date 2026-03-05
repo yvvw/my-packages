@@ -1,0 +1,188 @@
+{
+  "log": { "disabled": true, "level": "warn", "timestamp": true },
+  "dns": {
+    "servers": [
+      { "tag": "dns-direct", "type": "https", "server": "223.5.5.5" },
+      { "tag": "dns-proxy", "type": "tls", "server": "8.8.8.8", "detour": "out-proxy" }
+    ],
+    "rules": [
+      { "action": "route", "server": "dns-proxy", "clash_mode": "Global" },
+{{- /* 直连 域名 */}}
+{{- if or (ne (len .DirectDomains) 0) (ne (len .DirectDomainSuffixes) 0) }}
+      {
+        "action": "route",
+        "server": "dns-direct",
+{{- if ne (len .DirectDomains) 0 }}
+        "domain": {{MarshalArray .DirectDomains}},
+{{- end }}
+{{- if ne (len .DirectDomainSuffixes) 0 }}
+        "domain_suffix": {{MarshalArray .DirectDomainSuffixes}},
+{{- end }}
+        "strategy": "prefer_ipv6"
+      },
+{{- end }}
+{{- /* 屏蔽 域名 */}}
+{{- if or (ne (len .BlockDomains) 0) (ne (len .BlockDomainSuffixes) 0) }}
+      {
+{{- if ne (len .BlockDomains) 0 }}
+        "domain": {{MarshalArray .BlockDomains}},
+{{- end }}
+{{- if ne (len .BlockDomainSuffixes) 0 }}
+        "domain_suffix": {{MarshalArray .BlockDomainSuffixes}},
+{{- end }}
+        "action": "reject"
+      },
+{{- end }}
+{{- /* 自定义 */}}
+{{- range .DNSRules}}
+      {{.}},
+{{- end}}
+{{- /* 屏蔽 规则集 */}}
+{{- if ne (len .BlockRuleSet) 0 }}
+      {
+        "rule_set": {{MarshalArray .BlockRuleSet}},
+        "action": "reject"
+      },
+{{- end }}
+{{- /* 直连 规则集 */}}
+{{- if ne (len .DirectRuleSet) 0 }}
+      {
+        "action": "route",
+        "server": "dns-direct",
+        "rule_set": {{MarshalArray .DirectRuleSet}},
+        "strategy": "prefer_ipv6"
+      },
+{{- end }}
+      { "action": "route", "server": "dns-direct", "rule_set": "geosite-cn", "strategy": "prefer_ipv6" },
+      {{- /* 未知域名判断ip */}}
+      { "action": "route", "server": "dns-proxy",  "rule_set": "geosite-proxy", "invert": true, "client_subnet": "114.114.114.114/24" }
+    ],
+    "strategy": "ipv4_only",
+    "final": "dns-proxy"
+  },
+  "route": {
+    "rules": [
+      {{- /* DNS */}}
+      { "action": "hijack-dns", "port": 53 },
+      { "action": "reject", "type": "logical", "mode": "or", "rules": [
+        {{- /* 屏蔽QUIC */}}
+        { "network": "udp", "port": 443 },
+        {{- /* 屏蔽DoT */}}
+        { "port": 853 }
+      ]},
+      { "action": "route", "outbound": "out-direct", "ip_is_private": true },
+      {{- /* 嗅探 */}}
+      { "action": "sniff" },
+      {{- /* DNS */}}
+      { "action": "hijack-dns", "protocol": "dns" },
+      { "action": "reject", "protocol": "stun" },
+      { "action": "route",  "outbound": "out-proxy",  "clash_mode": "Global" },
+{{- /* 直连 ip */}}
+{{- if ne (len .DirectIPs) 0 }}
+      {
+        "ip_cidr": {{MarshalArray .DirectIPs}},
+        "action": "route",
+        "outbound": "out-direct"
+      },
+{{- end }}
+{{- /* 代理 ip */}}
+{{- if ne (len .ProxyIPs) 0 }}
+      {
+        "ip_cidr": {{MarshalArray .ProxyIPs}},
+        "action": "route",
+        "outbound": "out-proxy"
+      },
+{{- end }}
+{{- /* 直连 域名 */}}
+{{- if or (ne (len .DirectDomains) 0) (ne (len .DirectDomainSuffixes) 0) }}
+      {
+{{- if ne (len .DirectDomains) 0 }}
+        "domain": {{MarshalArray .DirectDomains}},
+{{- end }}
+{{- if ne (len .DirectDomainSuffixes) 0 }}
+        "domain_suffix": {{MarshalArray .DirectDomainSuffixes}},
+{{- end }}
+        "action": "route",
+        "outbound": "out-direct"
+      },
+{{- end }}
+{{- /* 代理 域名 */}}
+{{- if or (ne (len .ProxyDomains) 0) (ne (len .ProxyDomainSuffixes) 0) }}
+      {
+{{- if ne (len .ProxyDomains) 0 }}
+        "domain": {{MarshalArray .ProxyDomains}},
+{{- end }}
+{{- if ne (len .ProxyDomainSuffixes) 0 }}
+        "domain_suffix": {{MarshalArray .ProxyDomainSuffixes}},
+{{- end }}
+        "action": "route",
+        "outbound": "out-proxy"
+      },
+{{- end }}
+{{- /* 自定义 */}}
+{{- range .RouteRules}}
+      {{.}},
+{{- end}}
+{{- /* 直连 规则集 */}}
+{{- if ne (len .DirectRuleSet) 0 }}
+      {
+        "rule_set": {{MarshalArray .DirectRuleSet}},
+        "action": "route",
+        "outbound": "out-direct"
+      },
+{{- end }}
+{{- /* 代理 规则集 */}}
+{{- if ne (len .ProxyRuleSet) 0 }}
+      {
+        "rule_set": {{MarshalArray .ProxyRuleSet}},
+        "action": "route",
+        "outbound": "out-proxy"
+      },
+{{- end }}
+      {{- /* 代理 */}}
+      { "action": "route", "outbound": "out-proxy", "rule_set": "geosite-proxy" },
+      {{- /* 直连 */}}
+      { "action": "route", "outbound": "out-direct", "rule_set": ["geosite-cn", "geoip-cn"] }
+    ],
+    "rule_set": [
+{{- range .RuleSet}}
+      {{.}},
+{{- end}}
+      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",      "type": "remote", "format": "binary", "download_detour": "out-proxy" },
+      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/cn.srs",    "type": "remote", "format": "binary", "download_detour": "out-proxy" },
+      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/proxy.srs", "type": "remote", "format": "binary", "download_detour": "out-proxy" },
+      { "tag": "anti-ad",       "url": "https://anti-ad.net/anti-ad-sing-box.srs", "type": "remote", "format": "binary", "download_detour": "out-proxy" }
+    ],
+    "default_domain_resolver": "dns-direct",
+    "final": "out-proxy",
+    "auto_detect_interface": true
+  },
+  "inbounds": [
+    { "tag": "in-tun", "type": "tun", "address": "172.19.0.1/30", "auto_route": true }
+  ],
+  "outbounds": [
+{{- range .Outbounds}}
+    {{.}},
+{{- end}}
+    {
+      "tag": "out-proxy",
+      "type": "selector",
+      "default": "{{.DefaultOutboundTag}}",
+      "interrupt_exist_connections": true,
+      "outbounds": {{MarshalArray .OutboundTags}}
+    },
+{{- range .OutboundGroups}}
+    {
+      "tag": "{{.Tag}}",
+      "type": "selector",
+      "default": "{{.DefaultOutboundTag}}",
+      "interrupt_exist_connections": true,
+      "outbounds": {{MarshalArray .OutboundTags}}
+    },
+{{- end}}
+    { "tag": "out-direct", "type": "direct" }
+  ],
+  "experimental": {
+    "cache_file": { "enabled": true, "store_rdrc": true }
+  }
+}
