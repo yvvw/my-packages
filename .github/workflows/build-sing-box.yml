@@ -5,10 +5,10 @@ on:
     inputs:
       version:
         type: string
-        default: "1.13.0"
+        default: "1.13.1"
       ref:
         type: string
-        default: "dev-next"
+        default: "testing"
 
 jobs:
   main:
