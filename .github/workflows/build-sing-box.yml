@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         type: string
-        default: "1.13.1"
+        default: "1.14.0"
       ref:
         type: string
         default: "testing"
