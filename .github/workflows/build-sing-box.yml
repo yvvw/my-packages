@@ -10,37 +10,25 @@ on:
         type: string
         default: "testing"
 
+permissions:
+  contents: write
+
 jobs:
   main:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@main
         with:
           repository: "SagerNet/sing-box"
           ref: "${{ inputs.ref }}"
 
-      - uses: actions/setup-go@main
-        with:
-          go-version: ^1.25.6
-
-      - uses: actions/cache@main
-        id: cache-ghr
-        with:
-          key: ghr
-          path: ~/go/bin/ghr
-
-      - name: Install ghr
-        if: steps.cache-ghr.outputs.cache-hit != 'true'
-        run: |
-          cd $HOME
-          git clone --depth=1 https://github.com/nekohasekai/ghr ghr
-          cd ghr
-          go install -v .
-
       - uses: actions/checkout@main
         with:
           path: build_repo
           sparse-checkout: sing-box
+
+      - uses: actions/setup-go@main
 
       - run: |
           git tag ${{ inputs.version }} -f
@@ -54,8 +42,6 @@ jobs:
         with:
           args: release --snapshot --clean
 
-      - run: mkdir -p publish && mv dist/*.{tar.gz,zip} publish
-
       - uses: dev-drprasad/delete-older-releases@v0.3.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,15 +50,8 @@ jobs:
           delete_tags: true
           delete_tag_pattern: sing-box
 
-      - env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |-
-          export PATH="$PATH:$HOME/go/bin"
-          IFS="/" read -r user repo <<< "$GITHUB_REPOSITORY"
-          VERSION=""
-          if [ "${{ inputs.version }}" == "${{ inputs.ref }}" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="${{ inputs.version }}-${{ inputs.ref }}"
-          fi
-          ghr -u $user -r $repo --replace "sing-box-$VERSION" publish
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: sing-box
+          tag_name: sing-box
+          files: dist/*.{tar.gz,zip}
