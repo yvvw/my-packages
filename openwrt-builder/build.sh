@@ -54,7 +54,7 @@ set +a
 # custom feeds
 if ! grep -q "kiddin9" feeds.conf.default; then
 	sed -Ei "/telephony|video/d" feeds.conf.default
-	echo "src-git kiddin9 https://github.com/kiddin9/kwrt-packages.git;main" >>feeds.conf.default
+	echo "src-git kiddin9 https://github.com/kiddin9/op-packages.git;main" >>feeds.conf.default
 fi
 
 # custom packages
