@@ -54,7 +54,7 @@ jobs:
         with:
           args: release --snapshot --clean
 
-      - run: mkdir -p release && mv dist/*.{tar.gz,zip} release
+      - run: mkdir -p publish && mv dist/*.{tar.gz,zip} publish
 
       - uses: dev-drprasad/delete-older-releases@v0.3.4
         env:
@@ -75,4 +75,4 @@ jobs:
           else
             VERSION="${{ inputs.version }}-${{ inputs.ref }}"
           fi
-          ghr -u $user -r $repo --replace "sing-box-$VERSION" release
+          ghr -u $user -r $repo --replace "sing-box-$VERSION" publish
