@@ -13,7 +13,6 @@ builds:
       - -X github.com/sagernet/sing-box/constant.Version={{ .Version }}
       - -X internal/godebug.defaultGODEBUG=multipathtcp=0
     tags:
-      - with_utls
       - with_clash_api
       - with_tools_generate
     env:

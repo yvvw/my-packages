@@ -39,6 +39,11 @@ func ParseClashSubscription(_ context.Context, content string) ([]option.Outboun
 			if err != nil {
 				return nil, err
 			}
+			// FIX: skip shadow-tls plugin
+			pluginName := clashPluginName(ssOption.Plugin)
+			if pluginName == "shadow-tls" {
+				continue
+			}
 			outbound.Type = C.TypeShadowsocks
 			outbound.Options = &option.ShadowsocksOutboundOptions{
 				ServerOptions: option.ServerOptions{
@@ -47,7 +52,7 @@ func ParseClashSubscription(_ context.Context, content string) ([]option.Outboun
 				},
 				Password:      ssOption.Password,
 				Method:        clashShadowsocksCipher(ssOption.Cipher),
-				Plugin:        clashPluginName(ssOption.Plugin),
+				Plugin:        pluginName,
 				PluginOptions: clashPluginOptions(ssOption.Plugin, ssOption.PluginOpts),
 				Network:       clashNetworks(ssOption.UDP),
 			}
