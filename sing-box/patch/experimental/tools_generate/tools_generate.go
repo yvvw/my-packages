@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -38,10 +39,11 @@ func Parse(configBytes []byte) (*Config, error) {
 }
 
 type subscriptionConfig struct {
-	Name            string `toml:"name"`
-	URL             string `toml:"url"`
-	Content         string `toml:"content"`
-	DefaultOutbound string `toml:"default"`
+	Name            string   `toml:"name"`
+	URL             string   `toml:"url"`
+	Content         string   `toml:"content"`
+	DefaultOutbound string   `toml:"default"`
+	Keywords        []string `toml:"keywords"`
 }
 
 type singBoxConfig struct {
@@ -143,6 +145,12 @@ func GenerateSingBoxConfig(configName string, config *Config) ([]byte, error) {
 		var subOutboundTags []string
 		subscriptions := subscriptionList[idx]
 		for _, subscription := range subscriptions {
+			if len(subCfg.Keywords) > 0 && !slices.ContainsFunc(subCfg.Keywords, func(kw string) bool {
+				return strings.Contains(subscription.Tag, kw)
+			}) {
+				continue
+			}
+
 			subscription.Tag = subCfg.Name + "-" + subscription.Tag
 			outbound, err := subscription.MarshalJSONContext(ctx)
 			if err != nil {
