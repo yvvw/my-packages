@@ -34,6 +34,7 @@ jobs:
           git tag ${{ inputs.version }} -f
 
           cp build_repo/sing-box/.goreleaser.yaml . \
+            && rm -rf build_repo/sing-box/patch/experimental/tools_generate/go.{mod,sum} \
             && cp -a build_repo/sing-box/patch/. . \
             && rm -rf build_repo
           go mod tidy

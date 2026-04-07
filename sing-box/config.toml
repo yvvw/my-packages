@@ -1,27 +1,31 @@
-[[subscriptions]]
-name = "机场1"
-default = "机场1 香港"
-content = "base64"
+#[[subscriptions]]
+#name = "机场 clash"
+#default = "机场 ss 默认出口 不存在则选择第一个"
+#url = "http://机场clash.ip.org/订阅链接内容为clash配置"
 
 [[subscriptions]]
-name = "机场2"
-default = "机场2 日本"
-content = "https://机场二.com/订阅链接"
+name = "机场 ss base64 编码"
+# ss://2022-blake3-aes-128-gcm:aaa:zzz@proxy.ip.org:#节点名称
+content = "c3M6Ly9NakF5TWkxaWJHRnJaVE10WVdWekxURXlPQzFuWTIwNldWZEdhRHBsYm5BMj09QHByb3h5LmlwLm9yZzojJUU4JThBJTgyJUU3JTgyJUI5JUU1JTkwJThEJUU3JUE3JUIw"
+
+[[subscriptions]]
+name = "机场 sing-box 配置"
+url = '{"outbounds":[{"type":"shadowsocks","tag":"节点","server":"proxy.ip.org","server_port":123,"password":"密码"}]}'
 
 [sing-box]
-default = "out-机场1"
-output = "config_example.json"
-template = "config_example.template"
-clash_port = 9090
+default = "机场 clash"
+output = "config.json"
+template = "config.template"
+clash_port = 1234
 
 # rule_set
 [[sing-box.rule_set]]
-tag = "geosite-baidu"
+tag = "geosite-谷歌配置通过国内中转下载"
 url = "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs"
 download_detour = "out-direct"
 
 [[sing-box.rule_set]]
-tag = "geosite-google"
+tag = "geosite-谷歌配置直连下载"
 url = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs"
 download_detour = "out-proxy"
 
