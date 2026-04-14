@@ -15,6 +15,7 @@ builds:
     tags:
       - with_clash_api
       - with_tools_generate
+      - with_utls # reality
     env:
       - CGO_ENABLED=0
     targets:
