@@ -1,7 +1,6 @@
 package generator_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -34,5 +33,8 @@ func TestGenerateConfig(t *testing.T) {
 		_ = singboxConfigFile.Close()
 	}()
 
-	fmt.Println(string(singboxConfigBytes))
+	_, err = singboxConfigFile.Write(singboxConfigBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

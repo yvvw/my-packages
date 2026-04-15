@@ -6,20 +6,19 @@
       { "tag": "dns-proxy", "type": "tls", "server": "8.8.8.8", "detour": "out-proxy" }
     ],
     "rules": [
-      { "action": "route", "server": "dns-direct", "clash_mode": "Direct", "strategy": "prefer_ipv6" },
+      { "action": "route", "server": "dns-direct", "clash_mode": "Direct" },
       { "action": "route", "server": "dns-proxy",  "clash_mode": "Global" },
 {{- /* 直连 域名 */}}
 {{- if or (ne (len .DirectDomains) 0) (ne (len .DirectDomainSuffixes) 0) }}
       {
         "action": "route",
-        "server": "dns-direct",
 {{- if ne (len .DirectDomains) 0 }}
         "domain": {{MarshalArray .DirectDomains}},
 {{- end }}
 {{- if ne (len .DirectDomainSuffixes) 0 }}
         "domain_suffix": {{MarshalArray .DirectDomainSuffixes}},
 {{- end }}
-        "strategy": "prefer_ipv6"
+        "server": "dns-direct"
       },
 {{- end }}
 {{- /* 屏蔽 域名 */}}
@@ -49,17 +48,17 @@
 {{- if ne (len .DirectRuleSet) 0 }}
       {
         "action": "route",
-        "server": "dns-direct",
         "rule_set": {{MarshalArray .DirectRuleSet}},
-        "strategy": "prefer_ipv6"
+        "server": "dns-direct"
       },
 {{- end }}
-      { "action": "route", "server": "dns-direct", "rule_set": "geosite-cn", "strategy": "prefer_ipv6" },
-      {{- /* 未知域名使用代理dns提供国内定位获取ip */}}
-      { "action": "route", "server": "dns-proxy",  "rule_set": "geosite-proxy", "invert": true, "client_subnet": "114.114.114.114/24" }
+      { "action": "evaluate", "server": "dns-proxy", "client_subnet": "114.114.114.114/24" },
+      { "action": "route", "server": "dns-direct", "rule_set": "geoip-cn", "match_response": true },
+      { "action": "respond" }
     ],
-    "strategy": "ipv4_only",
-    "final": "dns-proxy"
+    "final": "dns-proxy",
+    "optimistic": true,
+    "strategy": "prefer_ipv4"
   },
   "route": {
     "rules": [
@@ -155,14 +154,14 @@
 {{- range .RuleSet}}
       {{.}},
 {{- end}}
-      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",      "type": "remote", "format": "binary", "download_detour": "out-proxy" },
-      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/cn.srs",    "type": "remote", "format": "binary", "download_detour": "out-proxy" },
-      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/proxy.srs", "type": "remote", "format": "binary", "download_detour": "out-proxy" },
-      { "tag": "anti-ad",       "url": "https://anti-ad.net/anti-ad-sing-box.srs", "type": "remote", "format": "binary", "download_detour": "out-proxy" }
+      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",      "type": "remote", "format": "binary" },
+      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/cn.srs",    "type": "remote", "format": "binary" },
+      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/proxy.srs", "type": "remote", "format": "binary" },
+      { "tag": "anti-ad",       "url": "https://anti-ad.net/anti-ad-sing-box.srs", "type": "remote", "format": "binary" }
     ],
-    "default_domain_resolver": "dns-direct",
     "final": "out-proxy",
-    "auto_detect_interface": true
+    "auto_detect_interface": true,
+    "default_domain_resolver": "dns-direct"
   },
   "inbounds": [
     { "tag": "in-tun", "type": "tun", "address": "172.19.0.1/30", "auto_route": true, "auto_redirect": true }
@@ -199,6 +198,7 @@
 {{- end}}
     { "tag": "out-direct", "type": "direct" }
   ],
+  "http_clients": [{ "tag": "client-default" }],
   "experimental": {
     "clash_api": {
       "default_mode": "Enhanced",
@@ -206,6 +206,6 @@
       "external_ui": "ui",
       "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
     },
-    "cache_file": { "enabled": true, "store_rdrc": true }
+    "cache_file": { "enabled": true, "store_dns": true }
   }
 }
