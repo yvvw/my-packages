@@ -154,9 +154,9 @@
 {{- range .RuleSet}}
       {{.}},
 {{- end}}
-      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",      "type": "remote", "format": "binary" },
-      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/cn.srs",    "type": "remote", "format": "binary" },
-      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/proxy.srs", "type": "remote", "format": "binary" },
+      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",      "type": "remote", "format": "binary", "http_client": "client-ruleset" },
+      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/cn.srs",    "type": "remote", "format": "binary", "http_client": "client-ruleset" },
+      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/proxy.srs", "type": "remote", "format": "binary", "http_client": "client-ruleset" },
       { "tag": "anti-ad",       "url": "https://anti-ad.net/anti-ad-sing-box.srs", "type": "remote", "format": "binary" }
     ],
     "final": "out-proxy",
@@ -198,7 +198,7 @@
 {{- end}}
     { "tag": "out-direct", "type": "direct" }
   ],
-  "http_clients": [{ "tag": "client-default" }],
+  "http_clients": [{ "tag": "client-ruleset", "detour": "out-proxy" }],
   "experimental": {
     "clash_api": {
       "default_mode": "Enhanced",

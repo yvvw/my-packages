@@ -22,12 +22,11 @@ clash_port = 1234
 [[sing-box.rule_set]]
 tag = "geosite-谷歌配置通过国内中转下载"
 url = "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs"
-download_detour = "out-direct"
 
 [[sing-box.rule_set]]
 tag = "geosite-谷歌配置直连下载"
 url = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/google.srs"
-download_detour = "out-proxy"
+http_client = "client-ruleset"
 
 # dns_rules
 [[sing-box.dns_rules]]

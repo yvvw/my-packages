@@ -35,56 +35,72 @@ func Parse(configBytes []byte) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	for idx := range config.SingBox.RuleSetList {
+		if config.SingBox.RuleSetList[idx].Type == "" {
+			config.SingBox.RuleSetList[idx].Type = "remote"
+		}
+		if config.SingBox.RuleSetList[idx].Format == "" {
+			config.SingBox.RuleSetList[idx].Format = "binary"
+		}
+	}
+	for idx := range config.SingBox.RouteRuleList {
+		if config.SingBox.RouteRuleList[idx].Action == "" {
+			config.SingBox.RouteRuleList[idx].Action = "route"
+		}
+	}
 	return config, nil
 }
 
 type subscriptionConfig struct {
-	Name            string   `toml:"name"`
-	URL             string   `toml:"url"`
-	Content         string   `toml:"content"`
-	DefaultOutbound string   `toml:"default"`
-	Keywords        []string `toml:"keywords"`
+	Name            string   `toml:"name" json:"name"`
+	URL             string   `toml:"url" json:"url"`
+	Content         string   `toml:"content" json:"content"`
+	DefaultOutbound string   `toml:"default" json:"default"`
+	Keywords        []string `toml:"keywords" json:"keywords,omitempty"`
 }
 
 type singBoxConfig struct {
-	Template         string   `toml:"template"`
-	Output           string   `toml:"output"`
-	Gateway          string   `toml:"gateway"`
-	ClashPort        int      `toml:"clash_port"`
-	DefaultOutbound  string   `toml:"default"`
-	AutoOutboundList []string `toml:"auto_outbounds"`
-	IncludeServer    bool     `toml:"include_server"`
+	Template         string   `toml:"template" json:"template"`
+	Output           string   `toml:"output" json:"output"`
+	Gateway          string   `toml:"gateway" json:"gateway"`
+	ClashPort        int      `toml:"clash_port" json:"clash_port"`
+	DefaultOutbound  string   `toml:"default" json:"default"`
+	AutoOutboundList []string `toml:"auto_outbounds" json:"auto_outbounds,omitempty"`
+	IncludeServer    bool     `toml:"include_server" json:"include_server,omitempty"`
 
-	RuleSetList   []singBoxRuleSetConfig       `toml:"rule_set"`
-	DirectRule    singBoxRouteRuleDirectConfig `toml:"direct_rule"`
-	ProxyRule     singBoxRouteRuleProxyConfig  `toml:"proxy_rule"`
-	BlockRule     singBoxRouteRuleBlockConfig  `toml:"block_rule"`
-	DNSRuleList   []singBoxDNSRuleConfig       `toml:"dns_rules"`
-	RouteRuleList []singBoxRouteRuleConfig     `toml:"route_rules"`
+	RuleSetList   []singBoxRuleSetConfig       `toml:"rule_set" json:"rule_set,omitempty"`
+	DirectRule    singBoxRouteRuleDirectConfig `toml:"direct_rule" json:"direct_rule"`
+	ProxyRule     singBoxRouteRuleProxyConfig  `toml:"proxy_rule" json:"proxy_rule"`
+	BlockRule     singBoxRouteRuleBlockConfig  `toml:"block_rule" json:"block_rule"`
+	DNSRuleList   []singBoxDNSRuleConfig       `toml:"dns_rules" json:"dns_rules,omitempty"`
+	RouteRuleList []singBoxRouteRuleConfig     `toml:"route_rules" json:"route_rules,omitempty"`
 }
 
 type singBoxRuleSetConfig struct {
-	Tag            string `toml:"tag"`
-	Url            string `toml:"url"`
-	DownloadDetour string `toml:"download_detour"`
+	Tag            string `toml:"tag" json:"tag"`
+	Url            string `toml:"url" json:"url"`
+	Type           string `toml:"-" json:"type"`
+	Format         string `toml:"-" json:"format"`
+	HTTPClient     string `toml:"http_client" json:"http_client,omitempty"`
+	DownloadDetour string `toml:"download_detour" json:"download_detour,omitempty"`
 }
 
 type singBoxDNSRuleConfig struct {
-	Server       string   `toml:"server"`
-	Domain       []string `toml:"domain"`
-	DomainSuffix []string `toml:"domain_suffix"`
-	RuleSet      []string `toml:"rule_set"`
+	Server       string   `toml:"server" json:"server"`
+	Domain       []string `toml:"domain" json:"domain,omitempty"`
+	DomainSuffix []string `toml:"domain_suffix" json:"domain_suffix,omitempty"`
+	RuleSet      []string `toml:"rule_set" json:"rule_set,omitempty"`
 }
 
 type singBoxRouteRuleBaseConfig struct {
-	Domain       []string `toml:"domain"`
-	DomainSuffix []string `toml:"domain_suffix"`
-	RuleSet      []string `toml:"rule_set"`
+	Domain       []string `toml:"domain" json:"domain,omitempty"`
+	DomainSuffix []string `toml:"domain_suffix" json:"domain_suffix,omitempty"`
+	RuleSet      []string `toml:"rule_set" json:"rule_set,omitempty"`
 }
 
 type singBoxRouteRuleDirectConfig struct {
 	singBoxRouteRuleBaseConfig
-	IPCIDR []string `toml:"ip_cidr"`
+	IPCIDR []string `toml:"ip_cidr" json:"ip_cidr,omitempty"`
 }
 
 type singBoxRouteRuleProxyConfig struct {
@@ -97,8 +113,8 @@ type singBoxRouteRuleBlockConfig struct {
 
 type singBoxRouteRuleConfig struct {
 	singBoxRouteRuleProxyConfig
-	Action   string `toml:"action" default:"route"`
-	Outbound string `toml:"outbound"`
+	Action   string `toml:"action" json:"action"`
+	Outbound string `toml:"outbound" json:"outbound"`
 }
 
 func readTemplateHeuristic(configName string, name string) ([]byte, error) {
@@ -330,47 +346,4 @@ func marshal(list any) (results []string) {
 		results = append(results, string(bs))
 	}
 	return
-}
-
-func (cfg singBoxDNSRuleConfig) MarshalJSON() ([]byte, error) {
-	bs := make([]byte, 0)
-	bs = append(bs, []byte(fmt.Sprintf(`{ "server": "%s"`, cfg.Server))...)
-	if len(cfg.RuleSet) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "rule_set": %s`, U.MarshalArrayF(cfg.RuleSet)))...)
-	}
-	if len(cfg.Domain) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "domain": %s`, U.MarshalArrayF(cfg.Domain)))...)
-	}
-	if len(cfg.DomainSuffix) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "domain_suffix": %s`, U.MarshalArrayF(cfg.DomainSuffix)))...)
-	}
-	bs = append(bs, []byte(" }")...)
-	return bs, nil
-}
-
-func (cfg singBoxRuleSetConfig) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`{ "tag": "%s", "url": "%s", "type": "remote", "format": "binary", "download_detour": "%s" }`, cfg.Tag, cfg.Url, cfg.DownloadDetour)), nil
-}
-
-func (cfg singBoxRouteRuleConfig) MarshalJSON() ([]byte, error) {
-	bs := make([]byte, 0)
-	action := cfg.Action
-	if action == "" {
-		action = "route"
-	}
-	bs = append(bs, []byte(fmt.Sprintf(`{ "action": "%s", "outbound": "%s"`, action, cfg.Outbound))...)
-	if len(cfg.RuleSet) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "rule_set": %s`, U.MarshalArrayF(cfg.RuleSet)))...)
-	}
-	if len(cfg.Domain) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "domain": %s`, U.MarshalArrayF(cfg.Domain)))...)
-	}
-	if len(cfg.DomainSuffix) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "domain_suffix": %s`, U.MarshalArrayF(cfg.DomainSuffix)))...)
-	}
-	if len(cfg.IPCIDR) > 0 {
-		bs = append(bs, []byte(fmt.Sprintf(`, "ip_cidr": %s`, U.MarshalArrayF(cfg.IPCIDR)))...)
-	}
-	bs = append(bs, []byte(" }")...)
-	return bs, nil
 }
