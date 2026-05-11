@@ -3,6 +3,7 @@ package parser
 import (
 	"context"
 	"strings"
+	"time"
 
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/option"
@@ -33,6 +34,56 @@ func ParseClashSubscription(_ context.Context, content string) ([]option.Outboun
 		var outbound option.Outbound
 		outbound.Tag = proxy.Name()
 		switch proxy.Type() {
+		case constant.AnyTLS:
+			anytlsOption := &clash_outbound.AnyTLSOption{}
+			err = decoder.Decode(proxyMapping, anytlsOption)
+			if err != nil {
+				return nil, err
+			}
+			tlsOptions := &option.OutboundTLSOptions{
+				Enabled:    true,
+				ServerName: anytlsOption.SNI,
+				Insecure:   anytlsOption.SkipCertVerify,
+				ALPN:       anytlsOption.ALPN,
+			}
+			if anytlsOption.ClientFingerprint != "" {
+				tlsOptions.UTLS = &option.OutboundUTLSOptions{
+					Enabled:     true,
+					Fingerprint: anytlsOption.ClientFingerprint,
+				}
+			}
+			if anytlsOption.ECHOpts.Enable {
+				tlsOptions.ECH = &option.OutboundECHOptions{
+					Enabled:         true,
+					QueryServerName: anytlsOption.ECHOpts.QueryServerName,
+				}
+				if anytlsOption.ECHOpts.Config != "" {
+					tlsOptions.ECH.Config = badoption.Listable[string]{anytlsOption.ECHOpts.Config}
+				}
+			}
+			if anytlsOption.Certificate != "" && anytlsOption.PrivateKey != "" {
+				tlsOptions.ClientCertificate = badoption.Listable[string]{anytlsOption.Certificate}
+				tlsOptions.ClientKey = badoption.Listable[string]{anytlsOption.PrivateKey}
+			}
+			outbound.Type = C.TypeAnyTLS
+			outbound.Options = &option.AnyTLSOutboundOptions{
+				DialerOptions: option.DialerOptions{},
+				ServerOptions: option.ServerOptions{
+					Server:     anytlsOption.Server,
+					ServerPort: uint16(anytlsOption.Port),
+				},
+				OutboundTLSOptionsContainer: option.OutboundTLSOptionsContainer{
+					TLS: tlsOptions,
+				},
+				Password: anytlsOption.Password,
+				IdleSessionCheckInterval: badoption.Duration(
+					time.Duration(anytlsOption.IdleSessionCheckInterval) * time.Second,
+				),
+				IdleSessionTimeout: badoption.Duration(
+					time.Duration(anytlsOption.IdleSessionTimeout) * time.Second,
+				),
+				MinIdleSession: anytlsOption.MinIdleSession,
+			}
 		case constant.Shadowsocks:
 			ssOption := &clash_outbound.ShadowSocksOption{}
 			err = decoder.Decode(proxyMapping, ssOption)

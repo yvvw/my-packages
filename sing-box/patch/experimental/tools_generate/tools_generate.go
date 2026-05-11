@@ -55,6 +55,7 @@ type subscriptionConfig struct {
 	Name            string   `toml:"name" json:"name"`
 	URL             string   `toml:"url" json:"url"`
 	Content         string   `toml:"content" json:"content"`
+	File            string   `toml:"file" json:"file"`
 	DefaultOutbound string   `toml:"default" json:"default"`
 	Keywords        []string `toml:"keywords" json:"keywords,omitempty"`
 }
@@ -315,6 +316,13 @@ func getSubscriptions(ctx context.Context, config *Config) (outboundList [][]opt
 				outbounds, sErr = S.Get(ctx, subConfig.URL)
 			} else if subConfig.Content != "" {
 				outbounds, sErr = S.Get(ctx, subConfig.Content)
+			} else if subConfig.File != "" {
+				contentBytes, rErr := os.ReadFile(subConfig.File)
+				if rErr != nil {
+					sErr = rErr
+				} else {
+					outbounds, sErr = S.Get(ctx, string(contentBytes))
+				}
 			} else {
 				sErr = errors.New("empty url and content")
 			}
