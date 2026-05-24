@@ -43,7 +43,7 @@ func ParseClashSubscription(_ context.Context, content string) ([]option.Outboun
 			tlsOptions := &option.OutboundTLSOptions{
 				Enabled:    true,
 				ServerName: anytlsOption.SNI,
-				Insecure:   anytlsOption.SkipCertVerify,
+				Insecure:   true,
 				ALPN:       anytlsOption.ALPN,
 			}
 			if anytlsOption.ClientFingerprint != "" {
