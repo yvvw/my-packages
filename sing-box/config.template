@@ -1,6 +1,9 @@
 {
   "log": { "disabled": true, "level": "warn", "timestamp": true },
   "dns": {
+    "final": "dns-proxy",
+    "strategy": "ipv4_only",
+    "optimistic": true,
     "servers": [
       { "tag": "dns-direct", "type": "https", "server": "223.5.5.5" },
       { "tag": "dns-proxy", "type": "tls", "server": "8.8.8.8", "detour": "out-proxy" }
@@ -52,15 +55,16 @@
         "server": "dns-direct"
       },
 {{- end }}
-      { "action": "evaluate", "server": "dns-proxy", "client_subnet": "114.114.114.114/24" },
-      { "action": "route", "server": "dns-direct", "rule_set": "geoip-cn", "match_response": true },
-      { "action": "respond" }
-    ],
-    "final": "dns-proxy",
-    "optimistic": true,
-    "strategy": "prefer_ipv4"
+      { "action": "route", "server": "dns-proxy", "rule_set": "geosite-proxy" },
+      { "action": "route", "server": "dns-direct", "rule_set": "geosite-cn" },
+      { "action": "evaluate", "server": "dns-direct" },
+      { "action": "respond", "rule_set": "geoip-cn", "match_response": true }
+    ]
   },
   "route": {
+    "final": "out-proxy",
+    "default_domain_resolver": "dns-direct",
+    "auto_detect_interface": true,
     "rules": [
       {{- /* DNS */}}
       { "action": "hijack-dns", "port": 53 },
@@ -114,13 +118,13 @@
 {{- /* 代理 域名 */}}
 {{- if or (ne (len .ProxyDomains) 0) (ne (len .ProxyDomainSuffixes) 0) }}
       {
+        "action": "route",
 {{- if ne (len .ProxyDomains) 0 }}
         "domain": {{MarshalArray .ProxyDomains}},
 {{- end }}
 {{- if ne (len .ProxyDomainSuffixes) 0 }}
         "domain_suffix": {{MarshalArray .ProxyDomainSuffixes}},
 {{- end }}
-        "action": "route",
         "outbound": "out-proxy"
       },
 {{- end }}
@@ -131,21 +135,21 @@
 {{- /* 直连 规则集 */}}
 {{- if ne (len .DirectRuleSet) 0 }}
       {
-        "rule_set": {{MarshalArray .DirectRuleSet}},
         "action": "route",
-        "outbound": "out-direct"
+        "outbound": "out-direct",
+        "rule_set": {{MarshalArray .DirectRuleSet}}
       },
 {{- end }}
 {{- /* 代理 规则集 */}}
 {{- if ne (len .ProxyRuleSet) 0 }}
       {
-        "rule_set": {{MarshalArray .ProxyRuleSet}},
         "action": "route",
-        "outbound": "out-proxy"
+        "outbound": "out-proxy",
+        "rule_set": {{MarshalArray .ProxyRuleSet}}
       },
 {{- end }}
       {{- /* 代理 */}}
-      { "action": "route", "outbound": "out-proxy", "rule_set": "geosite-proxy" },
+      { "action": "route", "outbound": "out-proxy",  "rule_set": "geosite-proxy" },
       {{- /* 直连 */}}
       { "action": "route", "outbound": "out-direct", "rule_set": "geosite-cn" }
     ],
@@ -154,22 +158,16 @@
 {{- range .RuleSet}}
       {{.}},
 {{- end}}
-      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/cn.srs",      "type": "remote", "format": "binary", "http_client": "client-ruleset" },
-      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/cn.srs",    "type": "remote", "format": "binary", "http_client": "client-ruleset" },
-      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/proxy.srs", "type": "remote", "format": "binary", "http_client": "client-ruleset" },
+      { "tag": "geoip-cn",      "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/cn.srs", "type": "remote", "format": "binary", "http_client": "client-ruleset" },
+      { "tag": "geosite-cn",    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/geolocation-cn.srs", "type": "remote", "format": "binary", "http_client": "client-ruleset" },
+      { "tag": "geosite-proxy", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/geolocation-!cn.srs", "type": "remote", "format": "binary", "http_client": "client-ruleset" },
       { "tag": "anti-ad",       "url": "https://anti-ad.net/anti-ad-sing-box.srs", "type": "remote", "format": "binary" }
-    ],
-    "final": "out-proxy",
-    "auto_detect_interface": true,
-    "default_domain_resolver": "dns-direct"
+    ]
   },
   "inbounds": [
-    { "tag": "in-tun", "type": "tun", "address": "172.19.0.1/30", "auto_route": true, "auto_redirect": true }
+    { "tag": "in-tun", "type": "tun", "address": "172.19.0.1/30", "auto_route": true, "auto_redirect": true, "endpoint_independent_nat": true }
   ],
   "outbounds": [
-{{- range .Outbounds}}
-    {{.}},
-{{- end}}
     {
       "tag": "out-proxy",
       "type": "selector",
@@ -195,6 +193,9 @@
       "interrupt_exist_connections": true,
       "outbounds": {{MarshalArray .OutboundTags}}
     },
+{{- end}}
+{{- range .Outbounds}}
+    {{.}},
 {{- end}}
     { "tag": "out-direct", "type": "direct" }
   ],
