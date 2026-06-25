@@ -73,30 +73,35 @@ if [ ! -d "feeds" ] || [ "$OPTION_FORCE_FEED_INSTALL" = "true" ]; then
 	./scripts/feeds install -a
 fi
 
-m_patch() {
-	local pf="$1"
-	[ ! -f "$pf" ] && return 0
-	local out=$(patch -p0 --forward --dry-run <"$pf" 2>&1)
-	if echo "$out" | grep -q "malformed patch"; then
-		echo "Patch failed $pf $out"
-		return 1
-	elif echo "$out" | grep -q "Reversed"; then
-		return 0
-	fi
-	patch -p0 <"$pf"
-}
+apply_patch() {
+	local workdir="$1"
+	local patch_type="$2"
 
-batch_patch() {
-	local patches=("$@")
-	for p in "${patches[@]}"; do
-		m_patch "$p"
-	done
+	local pc="${workdir}/.pc/${patch_type}"
+	local patches="${workdir}/patchs"
+	local series="${patch_type}-series"
+
+	if ! QUILT_PC="$pc" \
+		QUILT_PATCHES="$patches" \
+		QUILT_SERIES="$series" \
+		quilt push -a; then
+
+		if ! QUILT_PC="$pc" \
+			QUILT_PATCHES="$patches" \
+			QUILT_SERIES="$series" \
+			quilt unapplied 2>/dev/null | grep -q .; then
+			return 0
+		fi
+		exit 1
+	fi
+
+	return 0
 }
 
 # apply fix patch
-batch_patch "${BUILDER_DIR}/shared/patchs"/fix_*.patch
+apply_patch "${BUILDER_DIR}/shared" "fix"
 if [ -d "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs" ]; then
-	batch_patch "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs"/fix_*.patch
+	apply_patch "${BUILDER_DIR}/targets/${BUILD_TARGET}" "fix"
 fi
 
 # merge .config

@@ -28,8 +28,8 @@ uci -q batch <<EOF
     commit network
 
     set dhcp.lan.ra="server"
-	set dhcp.lan.dns_service="0"
-	add_list dhcp.lan.ra_flags="none"
+    set dhcp.lan.dns_service="0"
+    add_list dhcp.lan.ra_flags="none"
     commit dhcp
 EOF
 
@@ -48,9 +48,15 @@ uci -q batch <<EOF || true
     commit upnpd
 EOF
 
-# enable bbr
+# enable fullcone
 uci -q batch <<EOF || true
-    set turboacc.config.bbr_cca="1"
+    set firewall.@defaults[0].fullcone='1'
+    commit firewall
+
+    set turboacc.global.set='1'
+    set turboacc.config.fullcone='1'
+    set turboacc.config.fastpath_fo_hw='1'
+    set turboacc.config.tcpcca='bbr'
     commit turboacc
 EOF
 

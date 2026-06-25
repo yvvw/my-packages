@@ -1,0 +1,12 @@
+Index: immortalwrt/package/emortal/default-settings/Makefile
+===================================================================
+--- immortalwrt.orig/package/emortal/default-settings/Makefile
++++ immortalwrt/package/emortal/default-settings/Makefile
+@@ -16,7 +16,6 @@ define Package/default-settings
+   SECTION:=luci
+   CATEGORY:=LuCI
+   TITLE:=LuCI support for Default Settings
+-  DEPENDS:=+luci
+   PKGARCH:=all
+ endef
+ 

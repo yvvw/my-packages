@@ -3,9 +3,9 @@ set -euo pipefail
 
 # apply diy patch
 [ -d "${BUILDER_DIR}/shared/patchs" ] &&
-	batch_patch "${BUILDER_DIR}/shared/patchs"/diy_*.patch
+	apply_patch "${BUILDER_DIR}/shared" "diy"
 [ -d "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs" ] &&
-	batch_patch "${BUILDER_DIR}/targets/${BUILD_TARGET}/patchs"/diy_*.patch
+	apply_patch "${BUILDER_DIR}/targets/${BUILD_TARGET}" "diy"
 
 # apply tcp bbr patch
 if grep -qE "bbr=y|turboacc=y" .config && [ ! -d "package/turboacc" ]; then

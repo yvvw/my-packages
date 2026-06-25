@@ -1,0 +1,46 @@
+Index: immortalwrt/include/feeds.mk
+===================================================================
+--- immortalwrt.orig/include/feeds.mk
++++ immortalwrt/include/feeds.mk
+@@ -34,7 +34,7 @@ endef
+ # 1: destination file
+ define FeedSourcesAppendOPKG
+ ( \
+-  echo 'src/gz %d_core %U/targets/%S/packages'; \
++  echo 'src/gz %d_core %U/targets/%S/$(LINUX_VERSION)'; \
+   $(strip $(if $(CONFIG_PER_FEED_REPO), \
+ 	echo 'src/gz %d_base %U/packages/%A/base'; \
+ 	$(if $(CONFIG_BUILDBOT), \
+Index: immortalwrt/include/kernel-defaults.mk
+===================================================================
+--- immortalwrt.orig/include/kernel-defaults.mk
++++ immortalwrt/include/kernel-defaults.mk
+@@ -126,7 +126,7 @@ define Kernel/Configure/Default
+ 		cp $(LINUX_DIR)/.config.set $(LINUX_DIR)/.config.prev; \
+ 	}
+ 	$(_SINGLE) [ -d $(LINUX_DIR)/user_headers ] || $(KERNEL_MAKE) $(if $(findstring uml,$(BOARD)),ARCH=$(ARCH)) INSTALL_HDR_PATH=$(LINUX_DIR)/user_headers headers_install
+-	grep '=[ym]' $(LINUX_DIR)/.config.set | LC_ALL=C sort | $(MKHASH) md5 > $(LINUX_DIR)/.vermagic
++	echo '1' > $(LINUX_DIR)/.vermagic
+ endef
+ 
+ define Kernel/Configure/Initramfs
+Index: immortalwrt/package/emortal/default-settings/files/99-default-settings-chinese
+===================================================================
+--- immortalwrt.orig/package/emortal/default-settings/files/99-default-settings-chinese
++++ immortalwrt/package/emortal/default-settings/files/99-default-settings-chinese
+@@ -25,15 +25,4 @@ if uci -q get system.@imm_init[0].opkg_m
+ 	EOF
+ fi
+ 
+-apk_mirror="$(uci -q get system.@imm_init[0].apk_mirror)"
+-if [ -z "$apk_mirror" ]; then
+-	apk_mirror="https://mirrors.vsean.net/openwrt"
+-	uci -q batch <<-EOF
+-		set system.@imm_init[0].apk_mirror="$apk_mirror"
+-		commit system
+-	EOF
+-fi
+-
+-sed -i.bak "s,https://downloads.immortalwrt.org,$apk_mirror,g" "/etc/apk/repositories.d/distfeeds.list"
+-
+ exit 0

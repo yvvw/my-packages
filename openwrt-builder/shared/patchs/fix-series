@@ -1,0 +1,5 @@
+fix-build_fdisk.patch
+fix-build_firewall4.patch
+fix-build_nginx_ssl.patch
+fix-download_timeout.patch
+fix-feeds.patch

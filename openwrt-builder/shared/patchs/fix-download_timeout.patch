@@ -1,8 +1,10 @@
---- scripts/download.pl
-+++ scripts/download.pl
-@@ -124,12 +124,12 @@
+Index: immortalwrt/scripts/download.pl
+===================================================================
+--- immortalwrt.orig/scripts/download.pl
++++ immortalwrt/scripts/download.pl
+@@ -124,12 +124,12 @@ sub download_cmd {
  	my $filename = shift;
-
+ 
  	if ($download_tool eq "curl") {
 -		return (qw(curl -f --connect-timeout 5 --retry 3 --location),
 +		return (qw(curl -f --connect-timeout 10 --retry 3 --location),

@@ -1,0 +1,40 @@
+Index: immortalwrt/target/Config.in
+===================================================================
+--- immortalwrt.orig/target/Config.in
++++ immortalwrt/target/Config.in
+@@ -16,14 +16,10 @@ config HAS_FPU
+ config HAS_DT_OVERLAY_SUPPORT
+ 	bool
+ 
+-config AUDIO_SUPPORT
+-	bool
+-
+ config GPIO_SUPPORT
+ 	bool
+ 
+ config PCI_SUPPORT
+-	select AUDIO_SUPPORT
+ 	bool
+ 
+ config PCIE_SUPPORT
+@@ -39,7 +35,6 @@ config PWM_SUPPORT
+ 	bool
+ 
+ config USB_SUPPORT
+-	select AUDIO_SUPPORT
+ 	bool
+ 
+ config USB_GADGET_SUPPORT
+Index: immortalwrt/target/linux/rockchip/Makefile
+===================================================================
+--- immortalwrt.orig/target/linux/rockchip/Makefile
++++ immortalwrt/target/linux/rockchip/Makefile
+@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
+ 
+ BOARD:=rockchip
+ BOARDNAME:=Rockchip
+-FEATURES:=ext4 audio usb usbgadget display gpio fpu pci pcie rootfs-part boot-part squashfs
++FEATURES:=ext4 usb usbgadget display gpio fpu pci pcie rootfs-part boot-part squashfs
+ SUBTARGETS:=armv8
+ 
+ KERNEL_PATCHVER:=6.12

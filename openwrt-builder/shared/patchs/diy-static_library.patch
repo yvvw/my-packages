@@ -1,0 +1,13 @@
+Index: immortalwrt/package/firmware/linux-firmware/Makefile
+===================================================================
+--- immortalwrt.orig/package/firmware/linux-firmware/Makefile
++++ immortalwrt/package/firmware/linux-firmware/Makefile
+@@ -17,6 +17,8 @@ PKG_HASH:=bd19acc4c1a02548e09d3df67f987f
+ 
+ PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+ 
++PKG_FLAGS:=nonshared
++
+ SCAN_DEPS = *.mk
+ 
+ include $(INCLUDE_DIR)/package.mk
