@@ -192,7 +192,12 @@ func GenerateSingBoxConfig(configName string, config *Config) ([]byte, error) {
 		subscriptionOutboundGroupTag := "out-" + subCfg.Name
 		outboundGroupTags = append(outboundGroupTags, subscriptionOutboundGroupTag)
 
-		defaultSubscriptionOutboundTag := subCfg.Name + "-" + subCfg.DefaultOutbound
+		defaultSubscriptionOutboundTag := subCfg.DefaultOutbound
+		subOutboundTagPrefix := subCfg.Name + "-"
+		if !strings.HasPrefix(defaultSubscriptionOutboundTag, subOutboundTagPrefix) {
+			defaultSubscriptionOutboundTag = subOutboundTagPrefix + subCfg.DefaultOutbound
+		}
+
 		if !slices.Contains(subOutboundTags, defaultSubscriptionOutboundTag) {
 			defaultSubscriptionOutboundTag = subOutboundTags[0]
 		}
