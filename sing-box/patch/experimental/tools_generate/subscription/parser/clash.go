@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,213 +12,170 @@ import (
 	"github.com/sagernet/sing/common/format"
 	"github.com/sagernet/sing/common/json/badoption"
 	N "github.com/sagernet/sing/common/network"
-
-	"github.com/metacubex/mihomo/adapter"
-	clash_outbound "github.com/metacubex/mihomo/adapter/outbound"
-	"github.com/metacubex/mihomo/common/structure"
-	"github.com/metacubex/mihomo/config"
-	"github.com/metacubex/mihomo/constant"
+	"gopkg.in/yaml.v3"
 )
 
+type clashConfig struct {
+	Proxies []map[string]any `yaml:"proxies"`
+}
+
 func ParseClashSubscription(_ context.Context, content string) ([]option.Outbound, error) {
-	config, err := config.UnmarshalRawConfig([]byte(content))
+	var config clashConfig
+	err := yaml.Unmarshal([]byte(content), &config)
 	if err != nil {
 		return nil, E.Cause(err, "parse clash config")
 	}
-	decoder := structure.NewDecoder(structure.Option{TagName: "proxy", WeaklyTypedInput: true})
 	var outbounds []option.Outbound
-	for i, proxyMapping := range config.Proxy {
-		proxy, err := adapter.ParseProxy(proxyMapping)
-		if err != nil {
-			return nil, E.Cause(err, "parse proxy ", i)
-		}
+	for _, proxyMapping := range config.Proxies {
 		var outbound option.Outbound
-		outbound.Tag = proxy.Name()
-		switch proxy.Type() {
-		case constant.AnyTLS:
-			anytlsOption := &clash_outbound.AnyTLSOption{}
-			err = decoder.Decode(proxyMapping, anytlsOption)
-			if err != nil {
-				return nil, err
-			}
+		outbound.Tag = clashString(proxyMapping, "name")
+		switch clashString(proxyMapping, "type") {
+		case "anytls":
 			tlsOptions := &option.OutboundTLSOptions{
 				Enabled:    true,
-				ServerName: anytlsOption.SNI,
+				ServerName: clashString(proxyMapping, "sni"),
 				Insecure:   true,
-				ALPN:       anytlsOption.ALPN,
+				ALPN:       clashStringList(proxyMapping["alpn"]),
 			}
-			if anytlsOption.ClientFingerprint != "" {
+			if clientFingerprint := clashString(proxyMapping, "client-fingerprint"); clientFingerprint != "" {
 				tlsOptions.UTLS = &option.OutboundUTLSOptions{
 					Enabled:     true,
-					Fingerprint: anytlsOption.ClientFingerprint,
+					Fingerprint: clientFingerprint,
 				}
 			}
-			if anytlsOption.ECHOpts.Enable {
+			echOptions := clashMap(proxyMapping["ech-opts"])
+			if clashBool(echOptions, "enable") {
 				tlsOptions.ECH = &option.OutboundECHOptions{
 					Enabled:         true,
-					QueryServerName: anytlsOption.ECHOpts.QueryServerName,
+					QueryServerName: clashString(echOptions, "query-server-name"),
 				}
-				if anytlsOption.ECHOpts.Config != "" {
-					tlsOptions.ECH.Config = badoption.Listable[string]{anytlsOption.ECHOpts.Config}
+				if echConfig := clashString(echOptions, "config"); echConfig != "" {
+					tlsOptions.ECH.Config = badoption.Listable[string]{echConfig}
 				}
 			}
-			if anytlsOption.Certificate != "" && anytlsOption.PrivateKey != "" {
-				tlsOptions.ClientCertificate = badoption.Listable[string]{anytlsOption.Certificate}
-				tlsOptions.ClientKey = badoption.Listable[string]{anytlsOption.PrivateKey}
+			if certificate, privateKey := clashString(proxyMapping, "certificate"), clashString(proxyMapping, "private-key"); certificate != "" && privateKey != "" {
+				tlsOptions.ClientCertificate = badoption.Listable[string]{certificate}
+				tlsOptions.ClientKey = badoption.Listable[string]{privateKey}
 			}
 			outbound.Type = C.TypeAnyTLS
 			outbound.Options = &option.AnyTLSOutboundOptions{
 				DialerOptions: option.DialerOptions{},
 				ServerOptions: option.ServerOptions{
-					Server:     anytlsOption.Server,
-					ServerPort: uint16(anytlsOption.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
 				OutboundTLSOptionsContainer: option.OutboundTLSOptionsContainer{
 					TLS: tlsOptions,
 				},
-				Password: anytlsOption.Password,
+				Password: clashString(proxyMapping, "password"),
 				IdleSessionCheckInterval: badoption.Duration(
-					time.Duration(anytlsOption.IdleSessionCheckInterval) * time.Second,
+					time.Duration(clashInt(proxyMapping, "idle-session-check-interval")) * time.Second,
 				),
 				IdleSessionTimeout: badoption.Duration(
-					time.Duration(anytlsOption.IdleSessionTimeout) * time.Second,
+					time.Duration(clashInt(proxyMapping, "idle-session-timeout")) * time.Second,
 				),
-				MinIdleSession: anytlsOption.MinIdleSession,
+				MinIdleSession: clashInt(proxyMapping, "min-idle-session"),
 			}
-		case constant.Shadowsocks:
-			ssOption := &clash_outbound.ShadowSocksOption{}
-			err = decoder.Decode(proxyMapping, ssOption)
-			if err != nil {
-				return nil, err
-			}
-			// FIX: skip shadow-tls plugin
-			pluginName := clashPluginName(ssOption.Plugin)
+		case "ss", "shadowsocks":
+			pluginName := clashPluginName(clashString(proxyMapping, "plugin"))
 			if pluginName == "shadow-tls" {
 				continue
 			}
 			outbound.Type = C.TypeShadowsocks
 			outbound.Options = &option.ShadowsocksOutboundOptions{
 				ServerOptions: option.ServerOptions{
-					Server:     ssOption.Server,
-					ServerPort: uint16(ssOption.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
-				Password:      ssOption.Password,
-				Method:        clashShadowsocksCipher(ssOption.Cipher),
+				Password:      clashString(proxyMapping, "password"),
+				Method:        clashShadowsocksCipher(clashString(proxyMapping, "cipher")),
 				Plugin:        pluginName,
-				PluginOptions: clashPluginOptions(ssOption.Plugin, ssOption.PluginOpts),
-				Network:       clashNetworks(ssOption.UDP),
+				PluginOptions: clashPluginOptions(clashString(proxyMapping, "plugin"), clashMap(proxyMapping["plugin-opts"])),
+				Network:       clashNetworks(clashBool(proxyMapping, "udp")),
 			}
-		case constant.ShadowsocksR:
-			ssrOption := &clash_outbound.ShadowSocksROption{}
-			err = decoder.Decode(proxyMapping, ssrOption)
-			if err != nil {
-				return nil, err
-			}
+		case "ssr", "shadowsocksr":
 			outbound.Type = C.TypeShadowsocksR
 			outbound.Options = &option.ShadowsocksROutboundOptions{
 				ServerOptions: option.ServerOptions{
-					Server:     ssrOption.Server,
-					ServerPort: uint16(ssrOption.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
-				Password:      ssrOption.Password,
-				Method:        clashShadowsocksCipher(ssrOption.Cipher),
-				Protocol:      ssrOption.Protocol,
-				ProtocolParam: ssrOption.ProtocolParam,
-				Obfs:          ssrOption.Obfs,
-				ObfsParam:     ssrOption.ObfsParam,
-				Network:       clashNetworks(ssrOption.UDP),
+				Password:      clashString(proxyMapping, "password"),
+				Method:        clashShadowsocksCipher(clashString(proxyMapping, "cipher")),
+				Protocol:      clashString(proxyMapping, "protocol"),
+				ProtocolParam: clashString(proxyMapping, "protocol-param"),
+				Obfs:          clashString(proxyMapping, "obfs"),
+				ObfsParam:     clashString(proxyMapping, "obfs-param"),
+				Network:       clashNetworks(clashBool(proxyMapping, "udp")),
 			}
-		case constant.Trojan:
-			trojanOption := &clash_outbound.TrojanOption{}
-			err = decoder.Decode(proxyMapping, trojanOption)
-			if err != nil {
-				return nil, err
-			}
+		case "trojan":
 			outbound.Type = C.TypeTrojan
 			outbound.Options = &option.TrojanOutboundOptions{
 				ServerOptions: option.ServerOptions{
-					Server:     trojanOption.Server,
-					ServerPort: uint16(trojanOption.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
-				Password: trojanOption.Password,
+				Password: clashString(proxyMapping, "password"),
 				OutboundTLSOptionsContainer: option.OutboundTLSOptionsContainer{
 					TLS: &option.OutboundTLSOptions{
 						Enabled:    true,
-						ALPN:       trojanOption.ALPN,
-						ServerName: trojanOption.SNI,
-						Insecure:   trojanOption.SkipCertVerify,
+						ALPN:       clashStringList(proxyMapping["alpn"]),
+						ServerName: clashString(proxyMapping, "sni"),
+						Insecure:   clashBool(proxyMapping, "skip-cert-verify"),
 					},
 				},
-				Transport: clashTransport(trojanOption.Network, clash_outbound.HTTPOptions{}, clash_outbound.HTTP2Options{}, trojanOption.GrpcOpts, trojanOption.WSOpts),
-				Network:   clashNetworks(trojanOption.UDP),
+				Transport: clashTransport(clashString(proxyMapping, "network"), nil, nil, clashMap(proxyMapping["grpc-opts"]), clashMap(proxyMapping["ws-opts"])),
+				Network:   clashNetworks(clashBool(proxyMapping, "udp")),
 			}
-		case constant.Vmess:
-			vmessOption := &clash_outbound.VmessOption{}
-			err = decoder.Decode(proxyMapping, vmessOption)
-			if err != nil {
-				return nil, err
-			}
+		case "vmess":
 			outbound.Type = C.TypeVMess
 			outbound.Options = &option.VMessOutboundOptions{
 				ServerOptions: option.ServerOptions{
-					Server:     vmessOption.Server,
-					ServerPort: uint16(vmessOption.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
-				UUID:     vmessOption.UUID,
-				Security: vmessOption.Cipher,
-				AlterId:  vmessOption.AlterID,
+				UUID:     clashString(proxyMapping, "uuid"),
+				Security: clashString(proxyMapping, "cipher"),
+				AlterId:  clashInt(proxyMapping, "alterId", "alter-id"),
 				OutboundTLSOptionsContainer: option.OutboundTLSOptionsContainer{
 					TLS: &option.OutboundTLSOptions{
-						Enabled:    vmessOption.TLS,
-						ServerName: vmessOption.ServerName,
-						Insecure:   vmessOption.SkipCertVerify,
+						Enabled:    clashBool(proxyMapping, "tls"),
+						ServerName: clashString(proxyMapping, "servername", "server-name", "sni"),
+						Insecure:   clashBool(proxyMapping, "skip-cert-verify"),
 					},
 				},
-				Transport: clashTransport(vmessOption.Network, vmessOption.HTTPOpts, vmessOption.HTTP2Opts, vmessOption.GrpcOpts, vmessOption.WSOpts),
-				Network:   clashNetworks(vmessOption.UDP),
+				Transport: clashTransport(clashString(proxyMapping, "network"), clashMap(proxyMapping["http-opts"]), clashMap(proxyMapping["h2-opts"]), clashMap(proxyMapping["grpc-opts"]), clashMap(proxyMapping["ws-opts"])),
+				Network:   clashNetworks(clashBool(proxyMapping, "udp")),
 			}
-		case constant.Socks5:
-			socks5Option := &clash_outbound.Socks5Option{}
-			err = decoder.Decode(proxyMapping, socks5Option)
-			if err != nil {
-				return nil, err
-			}
-
-			if socks5Option.TLS {
-				// TODO: print warning
+		case "socks5":
+			if clashBool(proxyMapping, "tls") {
 				continue
 			}
-
 			outbound.Type = C.TypeSOCKS
 			outbound.Options = &option.SOCKSOutboundOptions{
 				ServerOptions: option.ServerOptions{
-					Server:     socks5Option.Server,
-					ServerPort: uint16(socks5Option.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
-				Username: socks5Option.UserName,
-				Password: socks5Option.Password,
-				Network:  clashNetworks(socks5Option.UDP),
+				Username: clashString(proxyMapping, "username", "user"),
+				Password: clashString(proxyMapping, "password"),
+				Network:  clashNetworks(clashBool(proxyMapping, "udp")),
 			}
-		case constant.Http:
-			httpOption := &clash_outbound.HttpOption{}
-			err = decoder.Decode(proxyMapping, httpOption)
-			if err != nil {
-				return nil, err
-			}
-
-			if httpOption.TLS {
+		case "http":
+			if clashBool(proxyMapping, "tls") {
 				continue
 			}
-
 			outbound.Type = C.TypeHTTP
 			outbound.Options = &option.HTTPOutboundOptions{
 				ServerOptions: option.ServerOptions{
-					Server:     httpOption.Server,
-					ServerPort: uint16(httpOption.Port),
+					Server:     clashString(proxyMapping, "server"),
+					ServerPort: uint16(clashInt(proxyMapping, "port")),
 				},
-				Username: httpOption.UserName,
-				Password: httpOption.Password,
+				Username: clashString(proxyMapping, "username", "user"),
+				Password: clashString(proxyMapping, "password"),
 			}
+		default:
+			continue
 		}
 		outbounds = append(outbounds, outbound)
 	}
@@ -278,54 +236,40 @@ func clashPluginOptions(plugin string, opts map[string]any) string {
 	return options.Build()
 }
 
-func clashTransport(network string, httpOpts clash_outbound.HTTPOptions, h2Opts clash_outbound.HTTP2Options, grpcOpts clash_outbound.GrpcOptions, wsOpts clash_outbound.WSOptions) *option.V2RayTransportOptions {
+func clashTransport(network string, httpOpts map[string]any, h2Opts map[string]any, grpcOpts map[string]any, wsOpts map[string]any) *option.V2RayTransportOptions {
 	switch network {
 	case "http":
-		var headers map[string]badoption.Listable[string]
-		for key, values := range httpOpts.Headers {
-			if headers == nil {
-				headers = make(map[string]badoption.Listable[string])
-			}
-			headers[key] = values
-		}
 		return &option.V2RayTransportOptions{
 			Type: C.V2RayTransportTypeHTTP,
 			HTTPOptions: option.V2RayHTTPOptions{
-				Method:  httpOpts.Method,
-				Path:    clashStringList(httpOpts.Path),
-				Headers: headers,
+				Method:  clashString(httpOpts, "method"),
+				Path:    clashFirstString(httpOpts["path"]),
+				Headers: clashHTTPHeaders(httpOpts["headers"]),
 			},
 		}
 	case "h2":
 		return &option.V2RayTransportOptions{
 			Type: C.V2RayTransportTypeHTTP,
 			HTTPOptions: option.V2RayHTTPOptions{
-				Path: h2Opts.Path,
-				Host: h2Opts.Host,
+				Path: clashString(h2Opts, "path"),
+				Host: clashStringList(h2Opts["host"]),
 			},
 		}
 	case "grpc":
 		return &option.V2RayTransportOptions{
 			Type: C.V2RayTransportTypeGRPC,
 			GRPCOptions: option.V2RayGRPCOptions{
-				ServiceName: grpcOpts.GrpcServiceName,
+				ServiceName: clashString(grpcOpts, "grpc-service-name", "service-name"),
 			},
 		}
 	case "ws":
-		var headers map[string]badoption.Listable[string]
-		for key, value := range wsOpts.Headers {
-			if headers == nil {
-				headers = make(map[string]badoption.Listable[string])
-			}
-			headers[key] = []string{value}
-		}
 		return &option.V2RayTransportOptions{
 			Type: C.V2RayTransportTypeWebsocket,
 			WebsocketOptions: option.V2RayWebsocketOptions{
-				Path:                wsOpts.Path,
-				Headers:             headers,
-				MaxEarlyData:        uint32(wsOpts.MaxEarlyData),
-				EarlyDataHeaderName: wsOpts.EarlyDataHeaderName,
+				Path:                clashString(wsOpts, "path"),
+				Headers:             clashHTTPHeaders(wsOpts["headers"]),
+				MaxEarlyData:        uint32(clashInt(wsOpts, "max-early-data")),
+				EarlyDataHeaderName: clashString(wsOpts, "early-data-header-name"),
 			},
 		}
 	default:
@@ -333,9 +277,136 @@ func clashTransport(network string, httpOpts clash_outbound.HTTPOptions, h2Opts 
 	}
 }
 
-func clashStringList(list []string) string {
+func clashMap(value any) map[string]any {
+	switch typedValue := value.(type) {
+	case map[string]any:
+		return typedValue
+	case map[any]any:
+		result := make(map[string]any, len(typedValue))
+		for key, value := range typedValue {
+			result[format.ToString(key)] = value
+		}
+		return result
+	default:
+		return nil
+	}
+}
+
+func clashString(mapping map[string]any, keys ...string) string {
+	for _, key := range keys {
+		switch value := mapping[key].(type) {
+		case string:
+			return value
+		case int:
+			return strconv.Itoa(value)
+		case int64:
+			return strconv.FormatInt(value, 10)
+		case uint64:
+			return strconv.FormatUint(value, 10)
+		case float64:
+			return strconv.FormatInt(int64(value), 10)
+		case bool:
+			return strconv.FormatBool(value)
+		}
+	}
+	return ""
+}
+
+func clashBool(mapping map[string]any, keys ...string) bool {
+	for _, key := range keys {
+		switch value := mapping[key].(type) {
+		case bool:
+			return value
+		case string:
+			result, _ := strconv.ParseBool(value)
+			return result
+		case int:
+			return value != 0
+		case int64:
+			return value != 0
+		case uint64:
+			return value != 0
+		case float64:
+			return value != 0
+		}
+	}
+	return false
+}
+
+func clashInt(mapping map[string]any, keys ...string) int {
+	for _, key := range keys {
+		switch value := mapping[key].(type) {
+		case int:
+			return value
+		case int64:
+			return int(value)
+		case uint64:
+			return int(value)
+		case float64:
+			return int(value)
+		case string:
+			result, _ := strconv.Atoi(value)
+			return result
+		}
+	}
+	return 0
+}
+
+func clashStringList(value any) badoption.Listable[string] {
+	switch typedValue := value.(type) {
+	case []string:
+		return typedValue
+	case []any:
+		result := make([]string, 0, len(typedValue))
+		for _, value := range typedValue {
+			if stringValue := clashAnyString(value); stringValue != "" {
+				result = append(result, stringValue)
+			}
+		}
+		return result
+	case string:
+		if typedValue != "" {
+			return badoption.Listable[string]{typedValue}
+		}
+	}
+	return nil
+}
+
+func clashFirstString(value any) string {
+	list := clashStringList(value)
 	if len(list) > 0 {
 		return list[0]
 	}
-	return ""
+	return clashAnyString(value)
+}
+
+func clashHTTPHeaders(value any) badoption.HTTPHeader {
+	headerMap := clashMap(value)
+	if len(headerMap) == 0 {
+		return nil
+	}
+	headers := make(badoption.HTTPHeader, len(headerMap))
+	for key, value := range headerMap {
+		headers[key] = clashStringList(value)
+	}
+	return headers
+}
+
+func clashAnyString(value any) string {
+	switch typedValue := value.(type) {
+	case string:
+		return typedValue
+	case int:
+		return strconv.Itoa(typedValue)
+	case int64:
+		return strconv.FormatInt(typedValue, 10)
+	case uint64:
+		return strconv.FormatUint(typedValue, 10)
+	case float64:
+		return strconv.FormatInt(int64(typedValue), 10)
+	case bool:
+		return strconv.FormatBool(typedValue)
+	default:
+		return ""
+	}
 }
