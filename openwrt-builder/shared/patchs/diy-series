@@ -1,5 +1,4 @@
 diy-banner.patch
-diy-remove_attendedsysupgrade.patch
 diy-remove_uhttpd.patch
 diy-static_library.patch
 diy-version_config.patch
