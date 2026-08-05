@@ -29,7 +29,9 @@ jobs:
           sparse-checkout: sing-box
 
       - uses: actions/setup-go@main
-
+        with:
+          go-version: 1.25.12
+ 
       - run: |
           git tag ${{ inputs.version }} -f
 

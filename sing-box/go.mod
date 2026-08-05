@@ -1,6 +1,6 @@
 module github.com/yvvw/my-packages/sing-box-generate-config
 
-go 1.26.1
+go 1.25.12
 
 replace github.com/sagernet/sing-box/experimental/tools_generate => ./patch/experimental/tools_generate
 
