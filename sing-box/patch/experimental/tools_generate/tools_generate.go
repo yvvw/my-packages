@@ -58,6 +58,7 @@ type subscriptionConfig struct {
 	File            string   `toml:"file" json:"file"`
 	DefaultOutbound string   `toml:"default" json:"default"`
 	Keywords        []string `toml:"keywords" json:"keywords,omitempty"`
+	DomainResolver  string   `toml:"domain_resolver" json:"domain_resolver,omitempty"`
 }
 
 type singBoxConfig struct {
@@ -169,6 +170,13 @@ func GenerateSingBoxConfig(configName string, config *Config) ([]byte, error) {
 			}
 
 			subscription.Tag = subCfg.Name + "-" + subscription.Tag
+			if subCfg.DomainResolver != "" {
+				if dialerWrapper, ok := subscription.Options.(option.DialerOptionsWrapper); ok {
+					dialerOpts := dialerWrapper.TakeDialerOptions()
+					dialerOpts.DomainResolver = &option.DomainResolveOptions{Server: subCfg.DomainResolver}
+					dialerWrapper.ReplaceDialerOptions(dialerOpts)
+				}
+			}
 			outbound, err := subscription.MarshalJSONContext(ctx)
 			if err != nil {
 				return nil, err
