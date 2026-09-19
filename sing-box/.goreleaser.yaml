@@ -16,7 +16,6 @@ builds:
     tags:
       - with_utls # reality
       - with_tailscale # tailscale
-      - with_gvisor # tailscale
       - with_musl
       - with_clash_api
       - with_tools_generate

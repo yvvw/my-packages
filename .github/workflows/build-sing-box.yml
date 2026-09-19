@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         type: string
-        default: "1.14.0"
+        default: "1.14.1"
       ref:
         type: string
         default: "testing"
@@ -28,10 +28,13 @@ jobs:
           path: build_repo
           sparse-checkout: sing-box
 
+      - run: |
+          echo "go-version=$(grep -m 1 -oP 'go-version:\s*\K[0-9.]+' .github/workflows/build.yml)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-go@main
         with:
-          go-version: 1.25.12
- 
+          go-version: ${{ steps.get-go-version.outputs.go-version }}
+
       - run: |
           git tag ${{ inputs.version }} -f
 
