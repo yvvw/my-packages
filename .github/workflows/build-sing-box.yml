@@ -28,12 +28,13 @@ jobs:
           path: build_repo
           sparse-checkout: sing-box
 
-      - run: |
+      - id: go-version
+        run: |
           echo "go-version=$(grep -m 1 -oP 'go-version:\s*\K[0-9.]+' .github/workflows/build.yml)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-go@main
         with:
-          go-version: ${{ steps.get-go-version.outputs.go-version }}
+          go-version: ${{ steps.go-version.outputs.go-version }}
 
       - run: |
           git tag ${{ inputs.version }} -f
