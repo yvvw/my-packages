@@ -1,4 +1,4 @@
-package generator_test
+package generate_config
 
 import (
 	"os"

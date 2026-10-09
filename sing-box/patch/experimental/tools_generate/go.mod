@@ -1,6 +1,6 @@
 module github.com/sagernet/sing-box/experimental/tools_generate
 
-go 1.26.1
+go 1.26.8
 
 require (
 	github.com/BurntSushi/toml v1.6.0

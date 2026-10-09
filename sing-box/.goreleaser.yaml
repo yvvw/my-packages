@@ -19,6 +19,7 @@ builds:
       - with_musl
       - with_clash_api
       - with_tools_generate
+      - with_tools_upgrade
     env:
       - CGO_ENABLED=0
     targets:
