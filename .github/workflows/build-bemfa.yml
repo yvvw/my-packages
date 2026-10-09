@@ -24,6 +24,7 @@ jobs:
 
       - uses: actions/setup-go@main
         with:
+          go-version: "1.26.8"
           cache-dependency-path: bemfa/go.sum
 
       - uses: goreleaser/goreleaser-action@master

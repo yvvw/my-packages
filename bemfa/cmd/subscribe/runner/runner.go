@@ -31,7 +31,7 @@ func ParseAction(action string) (runner Runnable, err error) {
 
 	if runnerCommand == wolRunnerCommand {
 		if argLength != 4 {
-			err = fmt.Errorf("invalid wol argument `%s`, rule [topic WOL mac_address broadcast_interface]")
+			err = fmt.Errorf("invalid wol argument `%s`, rule [topic WOL mac_address broadcast_interface]", action)
 		}
 		runner = &wolRunner{args[2], args[3], stubRunner{topic}}
 	} else if runnerCommand == windowsRebootRunnerCommand {
